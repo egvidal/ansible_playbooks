@@ -1,0 +1,60 @@
+- name: Looping through all hosts
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - debug:
+        msg: "{{ hostvars[item].ansible_host | default('NA') }}: {{ hostvars[item].inventory_hostname }}"
+      with_items:
+        - "{{ groups['all'] }}"
+
+    - set_fact:
+        my_inv: "{{ my_inv | default([]) + [{ 'key': hostvars[item].ansible_host | default('NA'), 'value': hostvars[item].inventory_hostname }] }}"
+      with_items:
+        - "{{ groups['all'] }}"
+
+    - debug:
+        var: my_inv
+
+    - set_fact:
+        my_inv_dict: "{{ my_inv | items2dict }}"
+
+    - debug:
+        var: my_inv_dict
+
+    - debug:
+        msg: "{{ my_ip }} belongs to {{ my_inv_dict[my_ip] }}"
+
+
+- name: Using map (faster!)
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Match given IP with inventory hostname
+      set_fact:
+        inv_hostname: "{{ groups['all'] | map('extract', hostvars) |
+                        selectattr('ansible_host', 'eq', given_ip) |
+                        map(attribute='inventory_hostname') | list | first }}"
+
+
+- name: Using DNS
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Execute 'nslookup' to get DNS hostname
+      command: "nslookup {{ given_ip }}"
+      register: nslookup_output
+
+    - name: Get DNS hostname from output
+      set_fact:
+        inv_hostname: "{{ nslookup_output.stdout | regex_search('(?<=name = )(.+?)(?=\\.)') }}"
+
+    - name: Convert hostname to uppercase
+      set_fact:
+        inv_hostname: "{{ inv_hostname | upper }}"
+      when:
+        - inv_hostname is defined
+        - hostvars[inv_hostname | upper] is defined
+
+    - name: Show IP vs Inv Hostname match
+      debug:
+        msg: "Given IP {{ given_ip }} belongs to {{ inv_hostname }}"

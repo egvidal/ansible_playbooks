@@ -1,0 +1,26 @@
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: define list
+      set_fact:
+        my_list: "['1', '2', '3', '4', '5']"
+        pattern: "['1', '3']"
+
+    - debug:
+        var: my_list
+
+    - name: match item from list
+      set_fact:
+        matching: "{{ [matching] | default('') + my_list | regex_findall(item) }}"
+      with_items: "{{ pattern }}"
+
+    - debug:
+        var: matching
+
+    - name: no-match item from list
+      set_fact:
+        no_matching: "{{ my_list | regex_findall(^[item]) }}"
+      with_items: "{{ pattern }}"
+
+    - debug:
+        var: no_matching

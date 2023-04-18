@@ -1,0 +1,17 @@
+---
+- name: Save report
+  lineinfile:
+    path: "{{ report_path }}{{ report_filename }}"
+    line: "{{ item }}"
+  loop: given_list
+
+- name: Read from CSV line by line
+  debug:
+    msg: "{{ item }}"
+  loop: "{{ lookup( 'file', '{{ report_path }}{{ report_filename }}').splitlines() }}"
+
+- name: Read from CSV file and return a dictionary
+  read_csv:
+    path: '{{ report_path }}/{{ report_filename }}'
+    delimiter: '!'
+  register: fixes

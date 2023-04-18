@@ -1,0 +1,20 @@
+- hosts: localhost
+  gather_facts: false
+  vars:
+    count: 0
+    max: 3
+  
+  tasks:
+    - block:
+      - name: loop through tasks until condition is met
+        include_tasks: recursive_tasks.yml
+        with_sequence: "1-{{ max }}"
+      when: count | default(0) | int <= 4
+
+    - name: print jump
+      debug:
+        var: jump
+
+    - name: print count
+      debug:
+        var: count
